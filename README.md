@@ -24,9 +24,9 @@ Windows, use the installer from
 Next, you should set up a virtual environment. From within this
 repository, run:
 
-  pyvenv venv
-  . venv/bin/activate
-  pip install argon2 tornadoweb motor docopt
+    pyvenv venv
+    . venv/bin/activate
+    pip install argon2 tornadoweb motor docopt
 
 Ensure that you have MongoDB 3.2 or later installed from the
 [MongoDB Download Center](https://www.mongodb.com/download-center).
