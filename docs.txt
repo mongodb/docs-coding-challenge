@@ -1,0 +1,19 @@
+HoppsHandler.check_origin(...)  -> ...
+    ...
+
+async require(self, roles: Iterable[Role]) -> None:
+    Provides a role-based access control mechanism. Each message handler
+    should call this method before doing anything else, with the required
+    roles as a parameter.
+
+    The default implementation will look up the set of roles associated
+    with the currently authenticated user within the database's security
+    collection.
+
+    Throws AccessDenied if the set of roles associated with the currently
+    authenticated does not contain ALL of the required roles.
+
+HoppsHandler.handle_auth(...) -> ...
+    ...
+
+...
