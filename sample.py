@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Usage: hopps [--username=<username>]
              [--hostname=<hostname>]
@@ -20,16 +21,18 @@ import hopps
 
 
 class NoSecurityHandler(hopps.HoppsHandler):
-    async def require(self, roles: Iterable[hopps.Role]) -> None:
+    @tornado.gen.coroutine
+    def require(self, roles: Iterable[hopps.Role]) -> None:
         # In admin mode, only allow user modification
         if self.admin_mode:
             if list(roles) != [Role.users]:
                 raise AccessDenied(None, roles)
             return
 
-    async def handle_auth(self, message_id: object, args: Tuple[object, object]) -> None:
+    @tornado.gen.coroutine
+    def handle_auth(self, message_id: object, args: Tuple[object, object]) -> None:
         username, password = args
-        if await self.conn.authenticate(str(username), str(password)):
+        if (yield self.conn.authenticate(str(username), str(password))):
             self.user = username
             return
 

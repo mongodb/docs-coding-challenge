@@ -17,7 +17,7 @@ Use your best judgment! It is deliberately vague and slim.
 Setup
 =====
 
-To work with Hopps, you will need Python 3.5 or later. On OS X and
+To work with Hopps, you will need Python 3.4 or later. On OS X and
 Windows, use the installer from
 [Python.org](https://www.python.org/downloads/).
 
@@ -26,10 +26,15 @@ repository, run:
 
     pyvenv venv
     . venv/bin/activate
-    pip install argon2 tornadoweb motor docopt
+    pip install argon2 tornado motor docopt typing
 
 Ensure that you have MongoDB 3.2 or later installed from the
 [MongoDB Download Center](https://www.mongodb.com/download-center).
+
+Start a MongoDB instance:
+
+    mkdir data
+    mongod --dbpath=`pwd`/data
 
 ``sample.py`` demonstrates use of ``hopps.py``, and ``cli.py`` provides
 a simple prompt interface for saving and retrieving documents.

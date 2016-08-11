@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
 """
 Usage: hopps-cli [<uri>]
 
@@ -43,34 +43,43 @@ class HoppsConnection:
         self.pending = {}
         self.messages = collections.deque()
 
-    async def connect(self) -> 'HoppsConnection':
-        self.conn = await tornado.websocket.websocket_connect(self.host,
+    @tornado.gen.coroutine
+    def connect(self) -> 'HoppsConnection':
+        self.conn = yield tornado.websocket.websocket_connect(self.host,
                                                               on_message_callback=self._on_message)
         return self
 
-    async def save(self, collection: str, doc: Dict[str, object]) -> None:
-        await self.__send({'save': [collection, doc]})
+    @tornado.gen.coroutine
+    def save(self, collection: str, doc: Dict[str, object]) -> None:
+        yield self.__send({'save': [collection, doc]})
 
-    async def get(self, collection: str, docid: str) -> None:
-        await self.__send({'get': [collection, docid]})
+    @tornado.gen.coroutine
+    def get(self, collection: str, docid: str) -> None:
+        yield self.__send({'get': [collection, docid]})
 
-    async def auth(self, username: str, password: str) -> None:
-        await self.__send({'auth': [username, password]})
+    @tornado.gen.coroutine
+    def auth(self, username: str, password: str) -> None:
+        yield self.__send({'auth': [username, password]})
 
-    async def create_user(self, username: str, password: str, roles: List[str]) -> None:
-        await self.__send({'create-user': [username, password, roles]})
+    @tornado.gen.coroutine
+    def create_user(self, username: str, password: str, roles: List[str]) -> None:
+        yield self.__send({'create-user': [username, password, roles]})
 
-    async def revoke_user(self, username: str) -> None:
-        await self.__send({'revoke-user': [username]})
+    @tornado.gen.coroutine
+    def revoke_user(self, username: str) -> None:
+        yield self.__send({'revoke-user': [username]})
 
-    async def list_users(self) -> None:
-        await self.__send({'list-users': []})
+    @tornado.gen.coroutine
+    def list_users(self) -> None:
+        yield self.__send({'list-users': []})
 
-    async def __send(self, msg: Dict[str, object]):
+    @tornado.gen.coroutine
+    def __send(self, msg: Dict[str, object]):
         self.message_id += 1
         msg['i'] = self.message_id
-        await self.conn.write_message(json.dumps(msg))
+        yield self.conn.write_message(json.dumps(msg))
 
+    @tornado.gen.coroutine
     def _on_message(self, message: str) -> None:
         if message is None:
 
@@ -78,6 +87,7 @@ class HoppsConnection:
         else:
             self.on_message(message)
 
+    @tornado.gen.coroutine
     def on_close(self) -> None:
         self.messages.append(None)
 
@@ -95,45 +105,54 @@ class Client:
         self.host = host
         self.conn = None  # type: HoppsConnection
 
-    async def handle_help(self):
+    @tornado.gen.coroutine
+    def handle_help(self):
         """help()"""
         props = [p for p in dir(self) if p.startswith('handle_')]
         for attr_name in props:
             attr = getattr(self, attr_name)
             print('  {}'.format(attr.__doc__))
 
-    async def handle_quit(self):
+    @tornado.gen.coroutine
+    def handle_quit(self):
         """quit()"""
         raise StopException()
 
-    async def handle_exit(self):
+    @tornado.gen.coroutine
+    def handle_exit(self):
         """exit()"""
         raise StopException()
 
-    async def handle_save(self, collection, raw_doc: str):
+    @tornado.gen.coroutine
+    def handle_save(self, collection, raw_doc: str):
         """save(collection, doc)"""
         doc = json.loads(raw_doc)
-        await self.conn.save(collection, doc)
+        yield self.conn.save(collection, doc)
 
-    async def handle_get(self, collection, docid: str):
+    @tornado.gen.coroutine
+    def handle_get(self, collection, docid: str):
         """get(collection, docid)"""
-        await self.conn.get(collection, docid)
+        yield self.conn.get(collection, docid)
 
-    async def handle_auth(self, username: str, password: str):
+    @tornado.gen.coroutine
+    def handle_auth(self, username: str, password: str):
         """auth(username, password)"""
-        await self.conn.auth(username, password)
+        yield self.conn.auth(username, password)
 
-    async def handle_create_user(self, username: str, password: str, roles: str):
+    @tornado.gen.coroutine
+    def handle_create_user(self, username: str, password: str, roles: str):
         """create_user(username, password, roles)"""
-        await self.conn.create_user(username, password, roles.split())
+        yield self.conn.create_user(username, password, roles.split())
 
-    async def handle_revoke_user(self, username: str):
+    @tornado.gen.coroutine
+    def handle_revoke_user(self, username: str):
         """revoke_user(username)"""
-        await self.conn.revoke_user(username)
+        yield self.conn.revoke_user(username)
 
-    async def handle_list_users(self):
+    @tornado.gen.coroutine
+    def handle_list_users(self):
         """list_users()"""
-        await self.conn.list_users()
+        yield self.conn.list_users()
 
     @tornado.gen.coroutine
     def _prompt(self):
@@ -157,12 +176,13 @@ class Client:
         except TypeError as err:
             logger.error(err)
 
-    async def mainloop(self):
-        self.conn = await HoppsConnection(self.host).connect()
+    @tornado.gen.coroutine
+    def mainloop(self):
+        self.conn = yield HoppsConnection(self.host).connect()
 
         try:
             while True:
-                await self._prompt()
+                yield self._prompt()
         except ClosedException:
             print('Host closed connection')
         except StopException:

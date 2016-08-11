@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
 import base64
 import concurrent.futures
 import enum
@@ -125,34 +125,37 @@ class Connection:
                                                  capped=True,
                                                  size=logSizeBytes)
 
-    async def initialize(self) -> None:
+    @tornado.gen.coroutine
+    def initialize(self) -> None:
         """Wait until all collections and indexes are ready."""
         if not self.__ready:
             return
 
         try:
-            await self.__ready
+            yield self.__ready
             self.__ready = None
         except pymongo.errors.CollectionInvalid:
             self.__ready = None
 
         self.commit_collection = self.db['committed']
-        await self.security_collection.ensure_index('username')
+        yield self.security_collection.ensure_index('username')
 
-    async def get_roles(self, username: str) -> List[str]:
+    @tornado.gen.coroutine
+    def get_roles(self, username: str) -> List[str]:
         """List the roles associated with a given username."""
-        doc = await self.security_collection.find_one({'username': username})
+        doc = yield self.security_collection.find_one({'username': username})
         if doc is None:
             return []
 
         return [Role[s] for s in doc['roles']]
 
-    async def save(self, collection: str, doc: Dict[str, object]) -> str:
+    @tornado.gen.coroutine
+    def save(self, collection: str, doc: Dict[str, object]) -> str:
         if '_id' not in doc:
             raise InvalidDocument('No _id', doc)
 
         coll = self.db[collection]
-        history = await coll.find_one({'_id': doc['_id']})
+        history = yield coll.find_one({'_id': doc['_id']})
 
         if history is None:
             if '_rev' in doc:
@@ -161,11 +164,11 @@ class Connection:
             rev = generate_revision()
             doc['_rev'] = rev
             doc['_parent'] = None
-            await coll.insert({'_id': doc['_id'],
+            yield coll.insert({'_id': doc['_id'],
                                'i': 0,
                                'revs': {rev: doc},
                                'leaf': doc}, w='majority')
-            await self._commit(collection, doc)
+            yield self._commit(collection, doc)
 
             return rev
 
@@ -191,17 +194,18 @@ class Connection:
         if to_remove:
             update_document['$unset'] = to_remove
 
-        await coll.update({'_id': doc['_id'],
+        yield coll.update({'_id': doc['_id'],
                            'i': history['i']},
                           update_document,
                           w='majority')
-        await self._commit(collection, doc)
+        yield self._commit(collection, doc)
 
         return rev
 
-    async def get(self, collection: str, docid: str) -> object:
+    @tornado.gen.coroutine
+    def get(self, collection: str, docid: str) -> object:
         coll = self.db[collection]
-        history = await coll.find_one({'_id': docid},
+        history = yield coll.find_one({'_id': docid},
                                       {'leaf': True})
         if history is None:
             raise NotFound(docid)
@@ -234,19 +238,22 @@ class Connection:
                                               upsert=True,
                                               w='majority')
 
-    async def list_users(self) -> List[str]:
+    @tornado.gen.coroutine
+    def list_users(self) -> List[str]:
         cursor = self.security_collection.find({}, {'username': True})
-        user_documents = await cursor.to_list(100)
+        user_documents = yield cursor.to_list(100)
         return [doc['username'] for doc in user_documents]
 
-    async def revoke_user(self, username: str) -> None:
-        await self.security_collection.update({'username': username},
+    @tornado.gen.coroutine
+    def revoke_user(self, username: str) -> None:
+        yield self.security_collection.update({'username': username},
                                               {'$unset': {'password': 1, 'salt': 1,
                                                '$set': {'roles': []}}})
 
-    async def _commit(self, collection: str, doc: Dict[str, object]) -> None:
+    @tornado.gen.coroutine
+    def _commit(self, collection: str, doc: Dict[str, object]) -> None:
         """Apply the given document revision to the replication log."""
-        await self.commit_collection.insert({'coll': collection,
+        yield self.commit_collection.insert({'coll': collection,
                                              'doc': doc}, w='majority')
 
     @classmethod
@@ -275,7 +282,8 @@ class HoppsHandler(tornado.websocket.WebSocketHandler):
         self.origin = origin
         return True
 
-    async def require(self, roles: Iterable[Role]) -> None:
+    @tornado.gen.coroutine
+    def require(self, roles: Iterable[Role]) -> None:
         # In admin mode, only allow user modification
         if self.admin_mode:
             if list(roles) != [Role.users]:
@@ -285,7 +293,7 @@ class HoppsHandler(tornado.websocket.WebSocketHandler):
         if self.user is None:
             raise AccessDenied(None, roles)
 
-        user_roles = set(await self.conn.get_roles(self.user))
+        user_roles = set((yield self.conn.get_roles(self.user)))
 
         if not user_roles.issuperset(set(roles)):
             raise AccessDenied(self.user, roles)
@@ -334,55 +342,58 @@ class HoppsHandler(tornado.websocket.WebSocketHandler):
     def on_close(self):
         self.closed = True
 
-    async def handle_auth(self, message_id: object, args: Tuple[object, object]) -> None:
+    @tornado.gen.coroutine
+    def handle_auth(self, message_id: object, args: Tuple[object, object]) -> None:
         username, password = args
-        if await self.conn.authenticate(str(username), str(password)):
+        if (yield self.conn.authenticate(str(username), str(password))):
             self.user = username
             return
 
         raise Exception('bad-auth')
 
-    async def handle_create_user(self,
-                                 message_id: object,
-                                 args: Tuple[object, object, object]) -> None:
-        await self.require([Role.users])
+    @tornado.gen.coroutine
+    def handle_create_user(self,
+                           message_id: object,
+                           args: Tuple[object, object, object]) -> None:
+        yield self.require([Role.users])
         username, password, roles = args
         roles = [str(role) for role in roles]
-        await self.conn.create_user(str(username), str(password), roles)
+        yield self.conn.create_user(str(username), str(password), roles)
 
-    async def handle_list_users(self, message_id: object):
-        await self.require([Role.users])
-        return await self.conn.list_users()
+    @tornado.gen.coroutine
+    def handle_list_users(self, message_id: object):
+        yield self.require([Role.users])
+        return (yield self.conn.list_users())
 
-    async def handle_revoke_user(self, message_id: object, args: Tuple[object, object]) -> None:
-        await self.require([Role.users])
+    @tornado.gen.coroutine
+    def handle_revoke_user(self, message_id: object, args: Tuple[object, object]) -> None:
+        yield self.require([Role.users])
         username, = args
-        await self.conn.revoke_user(str(username))
+        yield self.conn.revoke_user(str(username))
 
-    async def handle_save(self,
-                          message_id: object,
-                          args: Tuple[str, Dict[str, object]]) -> None:
-        await self.require([Role.write])
+    @tornado.gen.coroutine
+    def handle_save(self,
+                    message_id: object,
+                    args: Tuple[str, Dict[str, object]]) -> None:
+        yield self.require([Role.write])
         collection, doc = args
 
-        await self.conn.save(collection, doc)
+        yield self.conn.save(collection, doc)
 
-    async def handle_get(self,
-                          message_id: object,
-                          args: str) -> None:
-        await self.require([Role.read])
+    @tornado.gen.coroutine
+    def handle_get(self, message_id: object, args: str) -> None:
+        yield self.require([Role.read])
         collection, docid = args
 
-        return await self.conn.get(collection, str(docid))
-
-        await self.conn.save(collection, doc)
+        return (yield self.conn.get(collection, str(docid)))
 
     def log(self, handler, message, *args) -> None:
         handler('%s: {0}'.format(message), self.origin, *args)
 
-    async def _respond(self, message_id: object, status: str, doc: object) -> None:
+    @tornado.gen.coroutine
+    def _respond(self, message_id: object, status: str, doc: object) -> None:
         response = {'i': message_id, 'status': status}
         if doc is not None:
             response['doc'] = doc
 
-        await self.write_message(json.dumps(response))
+        yield self.write_message(json.dumps(response))
