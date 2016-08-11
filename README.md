@@ -34,7 +34,16 @@ Ensure that you have MongoDB 3.2 or later installed from the
 Start a MongoDB instance:
 
     mkdir data
-    mongod --dbpath=`pwd`/data
+    mongod --dbpath=`pwd`/data --logpath mongod.log --fork
 
 ``sample.py`` demonstrates use of ``hopps.py``, and ``cli.py`` provides
 a simple prompt interface for saving and retrieving documents.
+
+Start Hopps:
+
+    ./sample.py
+
+And in a new terminal, run the following:
+
+    ./cli.py
+    help
