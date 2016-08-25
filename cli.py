@@ -58,22 +58,6 @@ class HoppsConnection:
         yield self.__send({'get': [collection, docid]})
 
     @tornado.gen.coroutine
-    def auth(self, username: str, password: str) -> None:
-        yield self.__send({'auth': [username, password]})
-
-    @tornado.gen.coroutine
-    def create_user(self, username: str, password: str, roles: List[str]) -> None:
-        yield self.__send({'create-user': [username, password, roles]})
-
-    @tornado.gen.coroutine
-    def revoke_user(self, username: str) -> None:
-        yield self.__send({'revoke-user': [username]})
-
-    @tornado.gen.coroutine
-    def list_users(self) -> None:
-        yield self.__send({'list-users': []})
-
-    @tornado.gen.coroutine
     def __send(self, msg: Dict[str, object]):
         self.message_id += 1
         msg['i'] = self.message_id
@@ -107,7 +91,7 @@ class Client:
 
     @tornado.gen.coroutine
     def handle_help(self):
-        """help()"""
+        """help"""
         props = [p for p in dir(self) if p.startswith('handle_')]
         for attr_name in props:
             attr = getattr(self, attr_name)
@@ -115,44 +99,24 @@ class Client:
 
     @tornado.gen.coroutine
     def handle_quit(self):
-        """quit()"""
+        """quit"""
         raise StopException()
 
     @tornado.gen.coroutine
     def handle_exit(self):
-        """exit()"""
+        """exit"""
         raise StopException()
 
     @tornado.gen.coroutine
     def handle_save(self, collection, raw_doc: str):
-        """save(collection, doc)"""
+        """save <collection> <doc>"""
         doc = json.loads(raw_doc)
         yield self.conn.save(collection, doc)
 
     @tornado.gen.coroutine
     def handle_get(self, collection, docid: str):
-        """get(collection, docid)"""
+        """get <collection> <docid>"""
         yield self.conn.get(collection, docid)
-
-    @tornado.gen.coroutine
-    def handle_auth(self, username: str, password: str):
-        """auth(username, password)"""
-        yield self.conn.auth(username, password)
-
-    @tornado.gen.coroutine
-    def handle_create_user(self, username: str, password: str, roles: str):
-        """create_user(username, password, roles)"""
-        yield self.conn.create_user(username, password, roles.split())
-
-    @tornado.gen.coroutine
-    def handle_revoke_user(self, username: str):
-        """revoke_user(username)"""
-        yield self.conn.revoke_user(username)
-
-    @tornado.gen.coroutine
-    def handle_list_users(self):
-        """list_users()"""
-        yield self.conn.list_users()
 
     @tornado.gen.coroutine
     def _prompt(self):

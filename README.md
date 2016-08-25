@@ -26,7 +26,7 @@ repository, run:
 
     pyvenv venv
     . venv/bin/activate
-    pip install argon2 tornado motor docopt typing
+    pip install tornado motor docopt typing
 
 Ensure that you have MongoDB 3.2 or later installed from the
 [MongoDB Download Center](https://www.mongodb.com/download-center).
