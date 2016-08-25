@@ -47,3 +47,18 @@ And in a new terminal, run the following:
 
     ./cli.py
     help
+
+Usage
+=====
+
+Once you have started an instance and started the CLI tool, you can begin to
+issue commands. For example, run the following command:
+
+    save foo '{"_id": "ff36cf3a-fd3b-431e-863e-5dc89d4f075e", "name": "Bob", "n": 42}'
+
+This will save a document into the `foo` collection. Nothing will be printed
+until you press return a second time.
+
+To retrieve the document, run the following command and again press return:
+
+    get ff36cf3a-fd3b-431e-863e-5dc89d4f075e
