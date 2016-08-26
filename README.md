@@ -61,4 +61,4 @@ until you press return a second time.
 
 To retrieve the document, run the following command and again press return:
 
-    get ff36cf3a-fd3b-431e-863e-5dc89d4f075e
+    get foo ff36cf3a-fd3b-431e-863e-5dc89d4f075e
