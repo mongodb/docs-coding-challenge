@@ -1,5 +1,5 @@
-Welcome
-=======
+The Challenge
+=============
 
 Hopps is a simple document history-preserving key-value store built on
 top of [MongoDB](https://www.mongodb.com) and
