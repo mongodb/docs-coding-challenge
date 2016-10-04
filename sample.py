@@ -22,7 +22,7 @@ def main():
     port = int(options['--port'])
     mongodb_hostname = options['--mongodb']
 
-    connection = hopps.Connection('sample', hostname)
+    connection = hopps.Connection('sample', mongodb_hostname)
     tornado.ioloop.IOLoop.current().run_sync(connection.initialize)
 
     application = tornado.web.Application([
